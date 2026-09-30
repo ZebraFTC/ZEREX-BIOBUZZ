@@ -4,7 +4,9 @@ import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -16,79 +18,151 @@ public class ZerexTeleFC extends LinearOpMode {
     public static final double SPEED = 1.0;
     public double speed = 1.0;
 
-    private boolean lastOptionsState = false;
+    // --- ADRC Drivetrain Constants ---
+    // Max velocity of your motor (e.g., standard goBILDA Yellow Jacket 19.2:1 runs at ~2800 ticks/sec max loop velocity)
+    public static final double MAX_MOTOR_TICKS_PER_SEC = 2500.0;
+    public static final double B0 = 3000.0;
+    public static final double OMEGA_C = 12.0;
+    public static final double OMEGA_O = 48.0;
+
+    // Allocate 4 individual controllers (one node for each structural motor layout)
+    private AdrcController adrcFL;
+    private AdrcController adrcBL;
+    private AdrcController adrcFR;
+    private AdrcController adrcBR;
+
+    private ElapsedTime runtime = new ElapsedTime();
+
+    // Feature flag toggles
+    private boolean useAdrc = false;
+    private boolean lastXState = false;
+
     @Override
     public void runOpMode() throws InterruptedException {
-        // Declare our motors
-        // Make sure your ID's match your configuration
-        DcMotor frontLeftMotor = hardwareMap.dcMotor.get("frontLeft");
-        DcMotor backLeftMotor = hardwareMap.dcMotor.get("backLeft");
-        DcMotor frontRightMotor = hardwareMap.dcMotor.get("frontRight");
-        DcMotor backRightMotor = hardwareMap.dcMotor.get("backRight");
-        // Reverse the right side motors. This may be wrong for your setup.
-        // If your robot moves backwards when commanded to go forwards,
-        // reverse the left side instead.
-        // See the note about this earlier on this page.
+        // Declared explicit DcMotorEx variables to capture high precision velocity feedback signals
+        DcMotorEx frontLeftMotor = hardwareMap.get(DcMotorEx.class, "frontLeft");
+        DcMotorEx backLeftMotor = hardwareMap.get(DcMotorEx.class, "backLeft");
+        DcMotorEx frontRightMotor = hardwareMap.get(DcMotorEx.class, "frontRight");
+        DcMotorEx backRightMotor = hardwareMap.get(DcMotorEx.class, "backRight");
+
+        // Clear out internal built-in profile layers to delegate full authority to your ADRC engines
+        frontLeftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        backLeftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        frontRightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        backRightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
         backLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         frontLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
 
-        // Retrieve the IMU from the hardware map
+        // Instantiate separate independent math tracking loops for each corner
+        adrcFL = new AdrcController(B0, OMEGA_O, OMEGA_C);
+        adrcBL = new AdrcController(B0, OMEGA_O, OMEGA_C);
+        adrcFR = new AdrcController(B0, OMEGA_O, OMEGA_C);
+        adrcBR = new AdrcController(B0, OMEGA_O, OMEGA_C);
+
         GoBildaPinpointDriver pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
-        // Adjust the orientation parameters to match your robot
-
-
-
-        pinpoint.setOffsets(10,  -169, DistanceUnit.MM);
-
+        pinpoint.setOffsets(10, -169, DistanceUnit.MM);
         pinpoint.resetPosAndIMU();
 
-        waitForStart();
+        telemetry.addData("System Ready", "Press Play to Start. Toggle ADRC using Gamepad1 X.");
+        telemetry.update();
 
+        waitForStart();
         if (isStopRequested()) return;
+
+        runtime.reset();
+        adrcFL.reset();
+        adrcBL.reset();
+        adrcFR.reset();
+        adrcBR.reset();
 
         while (opModeIsActive()) {
             pinpoint.update();
+            double currentTime = runtime.seconds();
 
-            if (gamepad1.left_trigger_pressed) {
+            // --- Adaptive Velocity Driver Precision Scaling ---
+            if (gamepad1.left_trigger > 0.3) {
                 speed = SLOW_SPEED;
             } else {
                 speed = SPEED;
             }
 
-            double y = -gamepad1.left_stick_y; // Remember, Y stick value is reversed
-            double x = gamepad1.left_stick_x;
-            double rx = gamepad1.right_stick_x;
+            // --- State Toggle Interface Edge-Detection (Gamepad 1 Button X) ---
+            boolean currentXState = gamepad1.x;
+            if (currentXState && !lastXState) {
+                useAdrc = !useAdrc; // Reverse Boolean flag setting
 
-            // This button choice was made so that it is hard to hit on accident,
-            // it can be freely changed based on preference.
-            // The equivalent button is start on Xbox-style controllers.
-            if (gamepad1.options && !lastOptionsState) {
-                pinpoint.recalibrateIMU();
+                // Clear integration memory bounds to neutralize potential starting jump shocks
+                adrcFL.reset();
+                adrcBL.reset();
+                adrcFR.reset();
+                adrcBR.reset();
             }
-            lastOptionsState = gamepad1.options;
+            lastXState = currentXState;
 
+            // --- Capture Joystick Target Inputs ---
+            double y = -gamepad1.left_stick_y * speed;
+            double x = gamepad1.left_stick_x * speed;
+            double rx = gamepad1.right_stick_x * speed;
+
+            // --- Field-Centric Coordinate Rotation ---
             double botHeading = pinpoint.getHeading(AngleUnit.RADIANS);
-
-            // Rotate the movement direction counter to the bot's rotation
             double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
             double rotY = x * Math.sin(-botHeading) + y * Math.cos(-botHeading);
 
-            rotX = rotX * 1.1;  // Counteract imperfect strafing
+            // Mecanum inverse kinematics denominator scaling factor
+            double denominator = Math.max(Math.abs(rotY) + Math.abs(rotX) + Math.abs(rx), 1.0);
 
-            // Denominator is the largest motor power (absolute value) or 1
-            // This ensures all the powers maintain the same ratio,
-            // but only if at least one is out of the range [-1, 1]
-            double denominator = Math.max(Math.abs(rotY) + Math.abs(rotX) + Math.abs(rx), 1);
-            double frontLeftPower = (rotY + rotX + rx) / denominator * speed;
-            double backLeftPower = (rotY - rotX + rx) / denominator * speed;
-            double frontRightPower = (rotY - rotX - rx) / denominator * speed;
-            double backRightPower = (rotY + rotX - rx) / denominator * speed;
+            // Generate standard target percentages ranging across -1.0 to 1.0 thresholds
+            double targetFLPower = (rotY + rotX + rx) / denominator;
+            double targetBLPower = (rotY - rotX + rx) / denominator;
+            double targetFRPower = (rotY - rotX - rx) / denominator;
+            double targetBRPower = (rotY + rotX - rx) / denominator;
 
-            frontLeftMotor.setPower(frontLeftPower);
-            backLeftMotor.setPower(backLeftPower);
-            frontRightMotor.setPower(frontRightPower);
-            backRightMotor.setPower(backRightPower);
+            double finalFL, finalBL, finalFR, finalBR;
 
+            if (useAdrc) {
+                // Translate raw power scaling percentages directly into explicit Target Encoder Ticks/Second Velocities
+                double targetVelFL = targetFLPower * MAX_MOTOR_TICKS_PER_SEC;
+                double targetVelBL = targetBLPower * MAX_MOTOR_TICKS_PER_SEC;
+                double targetVelFR = targetFRPower * MAX_MOTOR_TICKS_PER_SEC;
+                double targetVelBR = targetBRPower * MAX_MOTOR_TICKS_PER_SEC;
+
+                // Capture real-time velocity parameters from motor encoder interfaces
+                double currentVelFL = frontLeftMotor.getVelocity();
+                double currentVelBL = backLeftMotor.getVelocity();
+                double currentVelFR = frontRightMotor.getVelocity();
+                double currentVelBR = backRightMotor.getVelocity();
+
+                // Compute stabilized output commands via the active error cancellation engines
+                finalFL = adrcFL.update(targetVelFL, currentVelFL, currentTime);
+                finalBL = adrcBL.update(targetVelBL, currentVelBL, currentTime);
+                finalFR = adrcFR.update(targetVelFR, currentVelFR, currentTime);
+                finalBR = adrcBR.update(targetVelBR, currentVelBR, currentTime);
+            } else {
+                // Pass direct voltage percentages seamlessly if flag tracker is manually toggled off
+                finalFL = targetFLPower;
+                finalBL = targetBLPower;
+                finalFR = targetFRPower;
+                finalBR = targetBRPower;
+            }
+
+            // Push voltage commands down out to the actuators
+            frontLeftMotor.setPower(finalFL);
+            backLeftMotor.setPower(finalBL);
+            frontRightMotor.setPower(finalFR);
+            backRightMotor.setPower(finalBR);
+
+            // Telemetry Diagnostics Panel Outputs
+            telemetry.addData("ADRC Drive Mode Status", useAdrc ? "ACTIVE (X to disable)" : "DISABLED (X to enable)");
+            telemetry.addData("Speed Mode Profile Modifier", speed);
+            telemetry.addData("Heading Angle (Rad)", "%.2f", botHeading);
+
+            if (useAdrc) {
+                telemetry.addData("FL Target vs Measured Vel", "%.0f / %.0f", targetFLPower * MAX_MOTOR_TICKS_PER_SEC, frontLeftMotor.getVelocity());
+                telemetry.addData("FL Dynamic Disturbance Correction (z2)", "%.2f", adrcFL.getEstimatedDisturbance());
+            }
+            telemetry.update();
         }
     }
 }
