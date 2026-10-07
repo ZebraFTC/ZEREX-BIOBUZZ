@@ -140,7 +140,7 @@ public class ZerexTeleFC extends LinearOpMode {
                 finalFR = adrcFR.update(targetVelFR, currentVelFR, currentTime);
                 finalBR = adrcBR.update(targetVelBR, currentVelBR, currentTime);
             } else {
-                // Pass direct voltage percentages seamlessly if flag tracker is manually toggled off
+                //  if flag tracker is manually toggled off, then Pass direct voltage percentages seamlessly
                 finalFL = targetFLPower;
                 finalBL = targetBLPower;
                 finalFR = targetFRPower;
@@ -153,7 +153,7 @@ public class ZerexTeleFC extends LinearOpMode {
             frontRightMotor.setPower(finalFR);
             backRightMotor.setPower(finalBR);
 
-            // Telemetry Diagnostics Panel Outputs
+            // ---Telemetry Diagnostics Panel Outputs---
             telemetry.addData("ADRC Drive Mode Status", useAdrc ? "ACTIVE (X to disable)" : "DISABLED (X to enable)");
             telemetry.addData("Speed Mode Profile Modifier", speed);
             telemetry.addData("Heading Angle (Rad)", "%.2f", botHeading);
