@@ -21,9 +21,9 @@ public class ZerexTeleFC extends LinearOpMode {
     // --- ADRC Drivetrain Constants ---
     // Max velocity of your motor (e.g., standard goBILDA Yellow Jacket 19.2:1 runs at ~2800 ticks/sec max loop velocity)
     public static final double MAX_MOTOR_TICKS_PER_SEC = 2500.0;
-    public static final double B0 = 3000.0;
-    public static final double OMEGA_C = 12.0;
-    public static final double OMEGA_O = 48.0;
+    public static final double b0 = 3000.0;
+    public static final double omega_c = 12.0;
+    public static final double omega_o = 48.0;
 
     // Allocate 4 individual controllers (one node for each structural motor layout)
     private AdrcController adrcFL;
@@ -55,10 +55,10 @@ public class ZerexTeleFC extends LinearOpMode {
         frontLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
 
         // Instantiate separate independent math tracking loops for each corner
-        adrcFL = new AdrcController(B0, OMEGA_O, OMEGA_C);
-        adrcBL = new AdrcController(B0, OMEGA_O, OMEGA_C);
-        adrcFR = new AdrcController(B0, OMEGA_O, OMEGA_C);
-        adrcBR = new AdrcController(B0, OMEGA_O, OMEGA_C);
+        adrcFL = new AdrcController(b0, omega_o, omega_c);
+        adrcBL = new AdrcController(b0, omega_o, omega_c);
+        adrcFR = new AdrcController(b0, omega_o, omega_c);
+        adrcBR = new AdrcController(b0, omega_o, omega_c);
 
         GoBildaPinpointDriver pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
         pinpoint.setOffsets(10, -169, DistanceUnit.MM);

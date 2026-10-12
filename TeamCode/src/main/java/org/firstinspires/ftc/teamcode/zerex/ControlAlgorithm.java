@@ -4,13 +4,13 @@ public class ControlAlgorithm {
     public static class AdrcController { //Active Disturbance Rejection Control
 
         // --- Tuning Variables ---
-        private double b0; // Control gain parameters
-        private double omega_o; // Observer Bandwidth
-        private double omega_c; // Controller Bandwidth
+        public double b0; // Control Gain Parameters
+        public double omega_o; // Observer Bandwidth
+        public double omega_c; // Controller Bandwidth
 
         // --- Gains & States ---
-        private double l1, l2;
-        private double z1 = 0; // State estimate
+        private double l1, l2; //First & Second Observer Gain(ESO)
+        private double z1 = 0; // State estimate(Velocity)
         private double z2 = 0; // Disturbance estimate
 
         private double lastTime = 0;
@@ -81,12 +81,12 @@ public class ControlAlgorithm {
     public static class PidController { //Proportional Integral Derivative
 
         // --- Tuning Variable ---
-        private double kp; //Proportional
-        private double ki; //Integral
-        private double kd; //Derivative
+        private double kp; //Proportional Gain
+        private double ki; //Integral Gain
+        private double kd; //Derivative Gain
 
         // --- Math States ---
-        private double integral = 0;
+        private double integral = 0; //Accumulated Error
         private double previousError = 0;
         private double lastTime = 0;
         private boolean initialized = false;
@@ -151,15 +151,201 @@ public class ControlAlgorithm {
         }
 
         public static class PiController { //Proportional Integral
+            private double kp; //Proportional Gain
+            private double ki; //Integral Gain
 
+            private double integral = 0.0;
+            private double lastTime = 0.0;
+            private boolean initialized = false;
+
+            public PiController(double kp, double ki) {
+                setTuning(kp, ki);
+            }
+
+            public void setTuning(double kp, double ki) {
+                this.kp = kp;
+                this.ki = ki;
+            }
+
+            public void reset() {
+                integral = 0.0;
+                lastTime = 0.0;
+                initialized = false;
+            }
+
+            public double update(double reference, double measurement, double currentTimeSeconds) {
+                double error = reference - measurement;
+
+                if (!initialized) {
+                    lastTime = currentTimeSeconds;
+                    initialized = true;
+                    return 0.0;
+                }
+
+                double dt = currentTimeSeconds - lastTime;
+                if (dt <= 0.0) dt = 0.001;
+                lastTime = currentTimeSeconds;
+
+                integral += error * dt;
+                integral = Math.max(-1.0, Math.min(1.0, integral));
+
+                double output = kp * error + ki * integral;
+
+                return Math.max(-1.0, Math.min(1.0, output));
+            }
+
+            public double getIntegral() {
+                return integral;
+            }
         }
 
         public static class DupidController { //Dynamically Updated Proportional Integral Derivative
+            private double kp; //Proportional Gain
+            private double ki; //Integral Gain
+            private double kd; //Derivative Gain
 
+            private double integral = 0.0;
+            private double previousError = 0.0;
+            private double lastTime = 0.0;
+            private boolean initialized = false;
+
+            private double integralLimit = 1.0;
+            private double outputMin = -1.0;
+            private double outputMax = 1.0;
+
+            public DupidController(double kp, double ki, double kd) {
+                setTuning(kp, ki, kd);
+            }
+
+            public void setTuning(double kp, double ki, double kd) {
+                this.kp = kp;
+                this.ki = ki;
+                this.kd = kd;
+            }
+
+            public void setIntegralLimit(double limit) {
+                integralLimit = Math.abs(limit);
+                integral = Math.max(-integralLimit, Math.min(integralLimit, integral));
+            }
+
+            public void setOutputLimits(double min, double max) {
+                if (min > max) {
+                    throw new IllegalArgumentException(
+                            "Minimum output must not exceed maximum output.");
+                }
+
+                outputMin = min;
+                outputMax = max;
+            }
+
+            public void reset() {
+                integral = 0.0;
+                previousError = 0.0;
+                lastTime = 0.0;
+                initialized = false;
+            }
+
+            public double update(double reference, double measurement, double currentTimeSeconds) {
+                double error = reference - measurement;
+
+                if (!initialized) {
+                    lastTime = currentTimeSeconds;
+                    previousError = error;
+                    initialized = true;
+                    return 0.0;
+                }
+
+                double dt = currentTimeSeconds - lastTime;
+                if (dt <= 0.0) dt = 0.001;
+                lastTime = currentTimeSeconds;
+
+                double derivative = (error - previousError) / dt;
+
+                double candidateIntegral = Math.max(
+                        -integralLimit,
+                        Math.min(integralLimit, integral + error * dt)
+                );
+
+                double candidateOutput =
+                        kp * error + ki * candidateIntegral + kd * derivative;
+
+                boolean pushingHigh =
+                        candidateOutput > outputMax && error * ki > 0.0;
+
+                boolean pushingLow =
+                        candidateOutput < outputMin && error * ki < 0.0;
+
+                if (!pushingHigh && !pushingLow) {
+                    integral = candidateIntegral;
+                }
+
+                double output = kp * error + ki * integral + kd * derivative;
+
+                previousError = error;
+
+                return Math.max(outputMin, Math.min(outputMax, output));
+            }
+
+            public double getIntegral() {
+                return integral;
+            }
+
+            public double getError() {
+                return previousError;
+            }
         }
 
         public static class FfdidController { //Feedforward w/ Derivative
+            private double kf; //Feedforward Gain
+            private double kp; //Proportional Gain
+            private double kd; //Derivative Gain
 
+            private double previousError = 0.0; //
+            private double lastTime = 0.0;
+            private boolean initialized = false;
+
+            public FfdidController(double kf, double kp, double kd) {
+                setTuning(kf, kp, kd);
+            }
+
+            public void setTuning(double kf, double kp, double kd) {
+                this.kf = kf;
+                this.kp = kp;
+                this.kd = kd;
+            }
+
+            public void reset() {
+                previousError = 0.0;
+                lastTime = 0.0;
+                initialized = false;
+            }
+
+            public double update(double reference, double measurement, double currentTimeSeconds) {
+                double error = reference - measurement;
+
+                if (!initialized) {
+                    lastTime = currentTimeSeconds;
+                    previousError = error;
+                    initialized = true;
+
+                    return Math.max(-1.0, Math.min(1.0, kf * reference));
+                }
+
+                double dt = currentTimeSeconds - lastTime;
+                if (dt <= 0.0) dt = 0.001;
+                lastTime = currentTimeSeconds;
+
+                double derivative = (error - previousError) / dt;
+                previousError = error;
+
+                double output = kf * reference + kp * error + kd * derivative;
+
+                return Math.max(-1.0, Math.min(1.0, output));
+            }
+
+            public double getError() {
+                return previousError;
+            }
         }
     }
 }
