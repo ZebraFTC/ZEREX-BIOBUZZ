@@ -36,7 +36,9 @@ public class ZerexTeleFC extends LinearOpMode {
     // Feature flag toggles
     private boolean useAdrc = false;
     private boolean lastXState = false;
-
+    Turret turret;
+    Outtake shooter;
+    Intake intake;
     @Override
     public void runOpMode() throws InterruptedException {
         // Declared explicit DcMotorEx variables to capture high precision velocity feedback signals
@@ -81,7 +83,7 @@ public class ZerexTeleFC extends LinearOpMode {
             double currentTime = runtime.seconds();
 
             // --- Adaptive Velocity Driver Precision Scaling ---
-            if (gamepad1.left_trigger > 0.3) {
+            if (gamepad1.left_bumper) {
                 speed = SLOW_SPEED;
             } else {
                 speed = SPEED;
@@ -163,6 +165,29 @@ public class ZerexTeleFC extends LinearOpMode {
                 telemetry.addData("FL Dynamic Disturbance Correction (z2)", "%.2f", adrcFL.getEstimatedDisturbance());
             }
             telemetry.update();
+            if(gamepad2.left_stick_x<-0.9||gamepad2.left_stick_x>0.9){
+                turret.stop();
+            }
+            else if (gamepad2.left_stick_x<-0.2 && gamepad2.left_stick_x>-0.9){
+                turret.turn(false,-1);
+            }
+            else if (gamepad2.left_stick_x>0.2&&gamepad2.left_stick_x<0.9){
+                turret.turn(true,1);
+            }
+
+            if(gamepad2.a){
+                shooter.shoot();
+            }
+            else{
+                shooter.stop();
+            }
+
+            if(gamepad2.left_trigger>0.3){
+                intake.intake();
+            }
+            else{
+                intake.stop();
+            }
         }
     }
 }
