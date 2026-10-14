@@ -26,10 +26,10 @@ public class ZerexTeleFC extends LinearOpMode {
     public static final double omega_o = 48.0;
 
     // Allocate 4 individual controllers (one node for each structural motor layout)
-    private AdrcController adrcFL;
-    private AdrcController adrcBL;
-    private AdrcController adrcFR;
-    private AdrcController adrcBR;
+    private ControlAlgorithm.AdrcController adrcFL;
+    private ControlAlgorithm.AdrcController adrcBL;
+    private ControlAlgorithm.AdrcController adrcFR;
+    private ControlAlgorithm.AdrcController adrcBR;
 
     private ElapsedTime runtime = new ElapsedTime();
 
@@ -55,10 +55,10 @@ public class ZerexTeleFC extends LinearOpMode {
         frontLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
 
         // Instantiate separate independent math tracking loops for each corner
-        adrcFL = new AdrcController(b0, omega_o, omega_c);
-        adrcBL = new AdrcController(b0, omega_o, omega_c);
-        adrcFR = new AdrcController(b0, omega_o, omega_c);
-        adrcBR = new AdrcController(b0, omega_o, omega_c);
+        adrcFL = new ControlAlgorithm.AdrcController(b0, omega_o, omega_c);
+        adrcBL = new ControlAlgorithm.AdrcController(b0, omega_o, omega_c);
+        adrcFR = new ControlAlgorithm.AdrcController(b0, omega_o, omega_c);
+        adrcBR = new ControlAlgorithm.AdrcController(b0, omega_o, omega_c);
 
         GoBildaPinpointDriver pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
         pinpoint.setOffsets(10, -169, DistanceUnit.MM);
