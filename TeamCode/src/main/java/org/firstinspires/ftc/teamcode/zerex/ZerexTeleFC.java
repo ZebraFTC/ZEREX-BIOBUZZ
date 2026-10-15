@@ -20,11 +20,12 @@ public class ZerexTeleFC extends LinearOpMode {
 
     // --- ADRC Drivetrain Constants ---
     // Max velocity of your motor (e.g., standard goBILDA Yellow Jacket 19.2:1 runs at ~2800 ticks/sec max loop velocity)
-    public static final double MAX_MOTOR_TICKS_PER_SEC = 2350.0;
-    public static final double b0 = 3000.0;
-    public static final double omega_c = 12.0;
-    public static final double omega_o = 48.0;
-
+    public static final double MAX_MOTOR_TICKS_PER_SEC = 2350.0; //MM_TPS=((Tₛₜₐₗₗ-r{0.052 m}*f;;;-r{0.o52 m}*{N/A}m*g)/(Tₛₜₐₗₗ))* ---Not finished
+    public static final double b0 = 3000.0; //b0=(kₜ*G)/(m*r^2) ---r=0.052m
+    public static final double omega_c = 12.0; //omega_c<=math.sqrt((Tₘₐₓ)/(m*r{0.052 m}*Eₘₐₓ)
+    public static final double omega_o = 48.0; //omega_o=x*omega_c ---x{2-5}
+                                               // ^^^(Note:Check zerex-programming, Discord for more calculation details)^^^
+    
     // Allocate 4 individual controllers (one node for each structural motor layout)
     private ControlAlgorithm.AdrcController adrcFL;
     private ControlAlgorithm.AdrcController adrcBL;
