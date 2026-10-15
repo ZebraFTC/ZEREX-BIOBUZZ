@@ -20,7 +20,7 @@ public class ZerexTeleFC extends LinearOpMode {
 
     // --- ADRC Drivetrain Constants ---
     // Max velocity of your motor (e.g., standard goBILDA Yellow Jacket 19.2:1 runs at ~2800 ticks/sec max loop velocity)
-    public static final double MAX_MOTOR_TICKS_PER_SEC = 2500.0;
+    public static final double MAX_MOTOR_TICKS_PER_SEC = 2350.0;
     public static final double b0 = 3000.0;
     public static final double omega_c = 12.0;
     public static final double omega_o = 48.0;
