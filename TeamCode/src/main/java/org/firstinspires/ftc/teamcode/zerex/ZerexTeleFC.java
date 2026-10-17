@@ -39,6 +39,7 @@ public class ZerexTeleFC extends LinearOpMode {
     Turret turret;
     Outtake shooter;
     Intake intake;
+
     @Override
     public void runOpMode() throws InterruptedException {
         // Declared explicit DcMotorEx variables to capture high precision velocity feedback signals
@@ -65,6 +66,12 @@ public class ZerexTeleFC extends LinearOpMode {
         GoBildaPinpointDriver pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
         pinpoint.setOffsets(10, -169, DistanceUnit.MM);
         pinpoint.resetPosAndIMU();
+
+        // --- Change #1: Initialize Turret Subsystem ---
+        DcMotor turnTableMotor = hardwareMap.get(DcMotor.class, "turnTable");
+        turret = new Turret(turnTableMotor);
+        turnTableMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        turnTableMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         telemetry.addData("System Ready", "Press Play to Start. Toggle ADRC using Gamepad1 X.");
         telemetry.update();
@@ -159,24 +166,28 @@ public class ZerexTeleFC extends LinearOpMode {
             telemetry.addData("ADRC Drive Mode Status", useAdrc ? "ACTIVE (X to disable)" : "DISABLED (X to enable)");
             telemetry.addData("Speed Mode Profile Modifier", speed);
             telemetry.addData("Heading Angle (Rad)", "%.2f", botHeading);
+            telemetry.addData("Turret Position Ticks", turnTableMotor.getCurrentPosition());
 
             if (useAdrc) {
                 telemetry.addData("FL Target vs Measured Vel", "%.0f / %.0f", targetFLPower * MAX_MOTOR_TICKS_PER_SEC, frontLeftMotor.getVelocity());
                 telemetry.addData("FL Dynamic Disturbance Correction (z2)", "%.2f", adrcFL.getEstimatedDisturbance());
             }
             telemetry.update();
-            if(gamepad2.left_stick_x<-0.9||gamepad2.left_stick_x>0.9){
+
+            if (gamepad2.left_stick_x < -0.9 || gamepad2.left_stick_x > 0.9) {
                 turret.stop();
             }
-            else if (gamepad2.left_stick_x<-0.2 && gamepad2.left_stick_x>-0.9){
-                turret.turn(false,-1);
+            else if (gamepad2.left_stick_x < -0.2 && gamepad2.left_stick_x > -0.9) {
+                turret.turn(false, 1.0);
             }
-            else if (gamepad2.left_stick_x>0.2&&gamepad2.left_stick_x<0.9){
-                turret.turn(true,1);
+            else if (gamepad2.left_stick_x > 0.2 && gamepad2.left_stick_x < 0.9) {
+                turret.turn(true, 1.0);
             }
-
-            if(gamepad2.a){
-                shooter.shoot();
+            else {
+                turret.stop();
+            }
+            if(gamepad2.right_trigger>0.3){
+                shooter.shoot(gamepad2.right_trigger);
             }
             else{
                 shooter.stop();
@@ -189,5 +200,6 @@ public class ZerexTeleFC extends LinearOpMode {
                 intake.stop();
             }
         }
+        turret.stop();
     }
 }

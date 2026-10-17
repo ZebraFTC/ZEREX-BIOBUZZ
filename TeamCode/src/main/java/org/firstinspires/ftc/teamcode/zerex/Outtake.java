@@ -10,8 +10,8 @@ public class Outtake {
         Shooter.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         Shooter.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
-    public void shoot(){
-        Shooter.setPower(1.0);
+    public void shoot(double power){
+        Shooter.setPower(power);
     }
     public void stop(){
         Shooter.setPower(0.0);
