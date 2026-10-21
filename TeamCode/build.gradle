@@ -20,19 +20,21 @@ android {
     namespace = 'org.firstinspires.ftc.teamcode'
 
     packagingOptions {
+        jniLibs {
+            pickFirsts += ['**/*.so']
+        }
         jniLibs.useLegacyPackaging true
     }
 }
-
-apply from: '../build.dependencies.gradle'
-
-
 
 repositories {
     maven { url 'https://repo.dairy.foundation/releases/'}
 }
 
 dependencies {
+    // REQUIRED: pulls in FtcRobotController (launcher activity, manifest, resources)
+    implementation project(':FtcRobotController')
+
     implementation 'com.pedropathing:revhub:3.0.0'
     implementation 'com.pedropathing:tuning:1.0.0'
 }

@@ -24,7 +24,7 @@ public class ZerexTeleFC extends LinearOpMode {
     public static final double b0 = 3000.0; //b0=(kₜ*G)/(m*r^2) ---r=0.052m
     public static final double omega_c = 12.0; //omega_c<=math.sqrt((Tₘₐₓ)/(m*r{0.052 m}*Eₘₐₓ)
     public static final double omega_o = 48.0; //omega_o=x*omega_c ---x{2-5}
-                                               // ^^^(Note:Check zerex-programming, Discord for more calculation details)^^^
+// ^^^(Note:Check zerex-programming, Discord for more calculation details)^^^
     
     // Allocate 4 individual controllers (one node for each structural motor layout)
     private ControlAlgorithm.AdrcController adrcFL;
