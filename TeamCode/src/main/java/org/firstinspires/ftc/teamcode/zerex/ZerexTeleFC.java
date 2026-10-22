@@ -20,10 +20,10 @@ public class ZerexTeleFC extends LinearOpMode {
 
     // --- ADRC Drivetrain Constants ---
     // Max velocity of your motor (e.g., standard goBILDA Yellow Jacket 19.2:1 runs at ~2800 ticks/sec max loop velocity)
-    public static final double MAX_MOTOR_TICKS_PER_SEC = 2350.0; //MM_TPS=((Tₛₜₐₗₗ-r{0.052 m}*f;;;-r{0.o52 m}*{N/A}m*g)/(Tₛₜₐₗₗ))* ---Not finished
-    public static final double b0 = 3000.0; //b0=(kₜ*G)/(m*r^2) ---r=0.052m
-    public static final double omega_c = 12.0; //omega_c<=math.sqrt((Tₘₐₓ)/(m*r{0.052 m}*Eₘₐₓ)
-    public static final double omega_o = 48.0; //omega_o=x*omega_c ---x{2-5}
+    public static final double MAX_MOTOR_TICKS_PER_SEC = 500.0; //MM_TPS=((Tₛₜₐₗₗ-r{0.052 m}*f;;;-r{0.o52 m}*{N/A}m*g)/(Tₛₜₐₗₗ))* ---Not finished
+    public static final double b0 = 339.43; //b0=(kₜ*G)/(m*r^2) ---r=0.052m
+    public static final double omega_c = 10.0; //omega_c<=math.sqrt((Tₘₐₓ)/(m*r{0.052 m}*Eₘₐₓ)
+    public static final double omega_o = 20.0; //omega_o=x*omega_c ---x{2-5}
 // ^^^(Note:Check zerex-programming, Discord for more calculation details)^^^
     
     // Allocate 4 individual controllers (one node for each structural motor layout)
@@ -41,10 +41,10 @@ public class ZerexTeleFC extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         // Declared explicit DcMotorEx variables to capture high precision velocity feedback signals
-        DcMotorEx frontLeftMotor = hardwareMap.get(DcMotorEx.class, "frontLeft");
-        DcMotorEx backLeftMotor = hardwareMap.get(DcMotorEx.class, "backLeft");
-        DcMotorEx frontRightMotor = hardwareMap.get(DcMotorEx.class, "frontRight");
-        DcMotorEx backRightMotor = hardwareMap.get(DcMotorEx.class, "backRight");
+        DcMotorEx frontLeftMotor = hardwareMap.get(DcMotorEx.class, "FL");
+        DcMotorEx backLeftMotor = hardwareMap.get(DcMotorEx.class, "BL");
+        DcMotorEx frontRightMotor = hardwareMap.get(DcMotorEx.class, "FR");
+        DcMotorEx backRightMotor = hardwareMap.get(DcMotorEx.class, "BR");
 
         // Clear out internal built-in profile layers to delegate full authority to your ADRC engines
         frontLeftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
