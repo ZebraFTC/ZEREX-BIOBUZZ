@@ -7,9 +7,11 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
-
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 
 @TeleOp
 public class ZerexTeleFC extends LinearOpMode {
@@ -39,9 +41,13 @@ public class ZerexTeleFC extends LinearOpMode {
     Turret turret;
     Outtake shooter;
     Intake intake;
-
+    private GoBildaPinpointDriver pinpoint;
+    private Limelight3A limelight;
+    private boolean autoTargetEnabled = false;
+    private boolean lastBumper2State = false;
     @Override
     public void runOpMode() throws InterruptedException {
+
         // Declared explicit DcMotorEx variables to capture high precision velocity feedback signals
         DcMotorEx frontLeftMotor = hardwareMap.get(DcMotorEx.class, "frontLeft");
         DcMotorEx backLeftMotor = hardwareMap.get(DcMotorEx.class, "backLeft");
@@ -57,6 +63,8 @@ public class ZerexTeleFC extends LinearOpMode {
         backLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         frontLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
 
+        limelight=hardwareMap.get(Limelight3A.class,"limelight");
+        limelight.pipelineSwitch(0);//april tag pipeline
         // Instantiate separate independent math tracking loops for each corner
         adrcFL = new AdrcController(B0, OMEGA_O, OMEGA_C);
         adrcBL = new AdrcController(B0, OMEGA_O, OMEGA_C);
@@ -66,10 +74,11 @@ public class ZerexTeleFC extends LinearOpMode {
         GoBildaPinpointDriver pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
         pinpoint.setOffsets(10, -169, DistanceUnit.MM);
         pinpoint.resetPosAndIMU();
+        limelight.start();
 
         // --- Change #1: Initialize Turret Subsystem ---
         DcMotor turnTableMotor = hardwareMap.get(DcMotor.class, "turnTable");
-        turret = new Turret(turnTableMotor);
+        turret = new Turret(turnTableMotor,limelight);
         turnTableMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         turnTableMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
@@ -173,30 +182,38 @@ public class ZerexTeleFC extends LinearOpMode {
                 telemetry.addData("FL Dynamic Disturbance Correction (z2)", "%.2f", adrcFL.getEstimatedDisturbance());
             }
             telemetry.update();
-
-            if (gamepad2.left_stick_x < -0.9 || gamepad2.left_stick_x > 0.9) {
-                turret.stop();
-            }
-            else if (gamepad2.left_stick_x < -0.2 && gamepad2.left_stick_x > -0.9) {
+            if (gamepad2.left_stick_x < -0.2) {
                 turret.turn(false, 1.0);
             }
-            else if (gamepad2.left_stick_x > 0.2 && gamepad2.left_stick_x < 0.9) {
+            else if (gamepad2.left_stick_x > 0.2) {
                 turret.turn(true, 1.0);
             }
             else {
-                turret.stop();
+                boolean currentBumper2State = gamepad2.left_bumper;
+
+                if (currentBumper2State && !lastBumper2State) {
+                    autoTargetEnabled = !autoTargetEnabled;
+                }
+                lastBumper2State = currentBumper2State;
+
+                if (autoTargetEnabled) {
+                    turret.target();
+                } else {
+                    turret.stop();
+                }
             }
-            if(gamepad2.right_trigger>0.3){
+
+            // --- Shooter ---
+            if (gamepad2.right_trigger > 0.3) {
                 shooter.shoot(gamepad2.right_trigger);
-            }
-            else{
+            } else {
                 shooter.stop();
             }
 
-            if(gamepad2.left_trigger>0.3){
+            // --- Intake ---
+            if (gamepad2.left_trigger > 0.3) {
                 intake.intake();
-            }
-            else{
+            } else {
                 intake.stop();
             }
         }
