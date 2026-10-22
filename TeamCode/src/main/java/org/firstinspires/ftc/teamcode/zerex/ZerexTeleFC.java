@@ -205,7 +205,7 @@ public class ZerexTeleFC extends LinearOpMode {
 
             // --- Shooter ---
             if (gamepad2.right_trigger > 0.3) {
-                shooter.shoot(gamepad2.right_trigger);
+                shooter.shoot(-gamepad2.right_trigger);
             } else {
                 shooter.stop();
             }
