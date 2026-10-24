@@ -12,7 +12,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
-
 @TeleOp
 public class ZerexTeleFC extends LinearOpMode {
 
@@ -47,7 +46,6 @@ public class ZerexTeleFC extends LinearOpMode {
     private boolean lastBumper2State = false;
     @Override
     public void runOpMode() throws InterruptedException {
-
         // Declared explicit DcMotorEx variables to capture high precision velocity feedback signals
         DcMotorEx frontLeftMotor = hardwareMap.get(DcMotorEx.class, "frontLeft");
         DcMotorEx backLeftMotor = hardwareMap.get(DcMotorEx.class, "backLeft");
@@ -75,8 +73,6 @@ public class ZerexTeleFC extends LinearOpMode {
         pinpoint.setOffsets(10, -169, DistanceUnit.MM);
         pinpoint.resetPosAndIMU();
         limelight.start();
-
-        // --- Change #1: Initialize Turret Subsystem ---
         DcMotor turnTableMotor = hardwareMap.get(DcMotor.class, "turnTable");
         turret = new Turret(turnTableMotor,limelight);
         turnTableMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -181,6 +177,7 @@ public class ZerexTeleFC extends LinearOpMode {
                 telemetry.addData("FL Target vs Measured Vel", "%.0f / %.0f", targetFLPower * MAX_MOTOR_TICKS_PER_SEC, frontLeftMotor.getVelocity());
                 telemetry.addData("FL Dynamic Disturbance Correction (z2)", "%.2f", adrcFL.getEstimatedDisturbance());
             }
+            telemetry.addData("Turret position: ",turnTableMotor.getCurrentPosition());
             telemetry.update();
             if (gamepad2.left_stick_x < -0.2) {
                 turret.turn(false, 1.0);
