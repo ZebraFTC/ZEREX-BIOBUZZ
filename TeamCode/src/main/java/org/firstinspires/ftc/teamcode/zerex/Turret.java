@@ -1,5 +1,4 @@
 package org.firstinspires.ftc.teamcode.zerex;
-
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
@@ -13,7 +12,6 @@ public class Turret {
 
     // Remembers the last known direction of the AprilTag to prevent freezing if it goes out of frame
     private boolean lastTurnedRight = true;
-
     public Turret(DcMotor TurnTable, Limelight3A LimeLight) {
         this.TurnTable = TurnTable;
         this.LimeLight = LimeLight;
@@ -23,18 +21,17 @@ public class Turret {
     public void turn(boolean right, double power) {
         TurnTable.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         int currentPosition = TurnTable.getCurrentPosition();
-
         if (right == true) {
             if (currentPosition >= UPPER_LIMIT) {
                 TurnTable.setPower(0.0);
             } else {
-                TurnTable.setPower(power);
+                TurnTable.setPower(-power);
             }
         } else if (right == false) {
             if (currentPosition <= LOWER_LIMIT) {
                 TurnTable.setPower(0.0);
             } else {
-                TurnTable.setPower(-power);
+                TurnTable.setPower(power);
             }
         }
     }
