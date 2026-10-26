@@ -166,24 +166,9 @@ public class ZerexTeleFC extends LinearOpMode {
             backLeftMotor.setPower(finalBL);
             frontRightMotor.setPower(finalFR);
             backRightMotor.setPower(finalBR);
-
-            // Telemetry Diagnostics Panel Outputs
-            telemetry.addData("ADRC Drive Mode Status", useAdrc ? "ACTIVE (X to disable)" : "DISABLED (X to enable)");
-            telemetry.addData("Speed Mode Profile Modifier", speed);
-            telemetry.addData("Heading Angle (Rad)", "%.2f", botHeading);
-            telemetry.addData("Turret Position Ticks", turnTableMotor.getCurrentPosition());
-
-            if (useAdrc) {
-                telemetry.addData("FL Target vs Measured Vel", "%.0f / %.0f", targetFLPower * MAX_MOTOR_TICKS_PER_SEC, frontLeftMotor.getVelocity());
-                telemetry.addData("FL Dynamic Disturbance Correction (z2)", "%.2f", adrcFL.getEstimatedDisturbance());
-            }
-            telemetry.addData("Turret position: ",turnTableMotor.getCurrentPosition());
-            telemetry.update();
-            if (gamepad2.left_stick_x < -0.2) {
-                turret.turn(false, 1.0);
-            }
-            else if (gamepad2.left_stick_x > 0.2) {
-                turret.turn(true, 1.0);
+            if (Math.abs(gamepad2.left_stick_x) > 0.2) {
+                autoTargetEnabled = false;
+                turret.manualControl(gamepad2.left_stick_x);
             }
             else {
                 boolean currentBumper2State = gamepad2.left_bumper;
@@ -213,7 +198,20 @@ public class ZerexTeleFC extends LinearOpMode {
             } else {
                 intake.stop();
             }
+
+            telemetry.addData("ADRC Drive Mode Status", useAdrc ? "ACTIVE (X to disable)" : "DISABLED (X to enable)");
+            telemetry.addData("Speed Mode Profile Modifier", speed);
+            telemetry.addData("Heading Angle (Rad)", "%.2f", botHeading);
+            telemetry.addData("Turret Position Ticks", turnTableMotor.getCurrentPosition());
+
+            if (useAdrc) {
+                telemetry.addData("FL Target vs Measured Vel", "%.0f / %.0f", targetFLPower * MAX_MOTOR_TICKS_PER_SEC, frontLeftMotor.getVelocity());
+                telemetry.addData("FL Dynamic Disturbance Correction (z2)", "%.2f", adrcFL.getEstimatedDisturbance());
+            }
+            telemetry.addData("Turret position: ",turnTableMotor.getCurrentPosition());
+            telemetry.update();
         }
         turret.stop();
     }
 }
+

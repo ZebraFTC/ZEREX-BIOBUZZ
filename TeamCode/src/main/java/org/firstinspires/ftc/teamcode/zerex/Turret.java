@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.zerex;
+
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 
@@ -10,53 +12,80 @@ public class Turret {
     public static final int LOWER_LIMIT = -1000;
     public static final int UPPER_LIMIT = 1000;
 
-    // Remembers the last known direction of the AprilTag to prevent freezing if it goes out of frame
+    public static final double TARGET_DEADBAND_DEGREES = 1.5;
+
+    private final double kP = 0.035;
+    private final double kD = 0.004;
+    private final ElapsedTime timer;
+    private double lastError = 0.0;
     private boolean lastTurnedRight = true;
+    private boolean firstFrameOfTargeting = true;
+
     public Turret(DcMotor TurnTable, Limelight3A LimeLight) {
         this.TurnTable = TurnTable;
         this.LimeLight = LimeLight;
-        TurnTable.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-    }
+        this.timer = new ElapsedTime();
 
-    public void turn(boolean right, double power) {
+        TurnTable.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         TurnTable.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        this.timer.reset();
+    }
+    public void setSafePower(double power) {
         int currentPosition = TurnTable.getCurrentPosition();
-        if (right == true) {
-            if (currentPosition >= UPPER_LIMIT) {
-                TurnTable.setPower(0.0);
-            } else {
-                TurnTable.setPower(-power);
-            }
-        } else if (right == false) {
-            if (currentPosition <= LOWER_LIMIT) {
-                TurnTable.setPower(0.0);
-            } else {
-                TurnTable.setPower(power);
-            }
+
+        if (currentPosition >= UPPER_LIMIT && power > 0) {
+            TurnTable.setPower(0.0);
+        }
+        else if (currentPosition <= LOWER_LIMIT && power < 0) {
+            TurnTable.setPower(0.0);
+        }
+        else {
+            TurnTable.setPower(power);
         }
     }
+    public void manualControl(double power) {
+        firstFrameOfTargeting = true;
 
+        if (Math.abs(power) > 0.05) {
+            lastTurnedRight = (power > 0);
+            setSafePower(power);
+        } else {
+            stop();
+        }
+    }
     public void target() {
         LLResult result = LimeLight.getLatestResult();
+        double dt = timer.seconds();
+        timer.reset();
+
+        if (dt <= 0.0) dt = 0.001;
 
         if (result != null && result.isValid()) {
-            double tx = result.getTx();
-            double kP = 0.04;
-            double power = tx * kP;
+            double currentError = result.getTx();
+            if (firstFrameOfTargeting) {
+                lastError = currentError;
+                firstFrameOfTargeting = false;
+            }
+            if (Math.abs(currentError) <= TARGET_DEADBAND_DEGREES) {
+                stop();
+                lastError = currentError;
+                return;
+            }
 
+            lastTurnedRight = (currentError > 0);
+            double pTerm = currentError * kP;
+            double errorDerivative = (currentError - lastError) / dt;
+            double dTerm = errorDerivative * kD;
+
+            double power = pTerm + dTerm;
             power = Math.max(-0.5, Math.min(0.5, power));
 
-            if (tx > 1.5) {
-                lastTurnedRight = true;
-                turn(true, Math.abs(power));
-            } else if (tx < -1.5) {
-                lastTurnedRight = false;
-                turn(false, Math.abs(power));
-            } else {
-                stop();
-            }
+            setSafePower(power);
+            lastError = currentError;
         } else {
-            turn(lastTurnedRight, 0.15);
+            double searchPower = lastTurnedRight ? 0.15 : -0.15;
+            setSafePower(searchPower);
+            firstFrameOfTargeting = true;
         }
     }
 
