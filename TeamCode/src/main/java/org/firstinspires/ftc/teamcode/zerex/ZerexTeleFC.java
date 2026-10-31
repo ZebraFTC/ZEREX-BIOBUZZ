@@ -211,7 +211,7 @@ public class ZerexTeleFC extends LinearOpMode {
             }
 
             // --- Intake ---
-            if (gamepad2.right_trigger > 0.3) {
+            if (gamepad1.left_trigger > 0.3) {
                 intake.intake();
             } else {
                 intake.stop();
