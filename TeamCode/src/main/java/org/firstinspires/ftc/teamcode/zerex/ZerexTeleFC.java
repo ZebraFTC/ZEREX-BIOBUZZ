@@ -12,6 +12,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
+import com.qualcomm.robotcore.hardware.CRServo;
 @TeleOp
 public class ZerexTeleFC extends LinearOpMode {
 
@@ -44,6 +45,7 @@ public class ZerexTeleFC extends LinearOpMode {
     private Limelight3A limelight;
     private boolean autoTargetEnabled = false;
     private boolean lastBumper2State = false;
+    private double shooterSpeed;
     @Override
     public void runOpMode() throws InterruptedException {
         // Declared explicit DcMotorEx variables to capture high precision velocity feedback signals
@@ -74,10 +76,10 @@ public class ZerexTeleFC extends LinearOpMode {
         pinpoint.resetPosAndIMU();
         limelight.start();
         DcMotor turnTableMotor = hardwareMap.get(DcMotor.class, "turnTable");
-        turret = new Turret(turnTableMotor,limelight);
+        CRServo TurretServo = hardwareMap.get(CRServo.class, "turretServo");
+        turret = new Turret(turnTableMotor,limelight,TurretServo);
         turnTableMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         turnTableMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
         telemetry.addData("System Ready", "Press Play to Start. Toggle ADRC using Gamepad1 X.");
         telemetry.update();
 
@@ -184,16 +186,32 @@ public class ZerexTeleFC extends LinearOpMode {
                     turret.stop();
                 }
             }
+            if (gamepad2.right_stick_y>0.3){
+                turret.up();
+            }
+            else if (gamepad2.right_stick_y<0.3){
+                turret.down();
+            }
+            else{
+                turret.servoStop();
+            }
+            if (gamepad2.left_trigger>0.3){
+                shooterSpeed=-0.5;
+            }
+            else{
+                shooterSpeed=-1;
+            }
+
 
             // --- Shooter ---
-            if (gamepad2.right_trigger > 0.3) {
-                shooter.shoot(-gamepad2.right_trigger);
+            if (gamepad2.right_bumper) {
+                shooter.shoot(shooterSpeed);
             } else {
                 shooter.stop();
             }
 
             // --- Intake ---
-            if (gamepad2.left_trigger > 0.3) {
+            if (gamepad2.right_trigger > 0.3) {
                 intake.intake();
             } else {
                 intake.stop();

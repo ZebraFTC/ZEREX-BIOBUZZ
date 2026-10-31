@@ -4,11 +4,12 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
-
+import com.qualcomm.robotcore.hardware.CRServo;
 public class Turret {
     DcMotor TurnTable;
     Limelight3A LimeLight;
 
+    CRServo TurretServo;
     public static final int LOWER_LIMIT = -1000;
     public static final int UPPER_LIMIT = 1000;
 
@@ -21,7 +22,7 @@ public class Turret {
     private boolean lastTurnedRight = true;
     private boolean firstFrameOfTargeting = true;
 
-    public Turret(DcMotor TurnTable, Limelight3A LimeLight) {
+    public Turret(DcMotor TurnTable, Limelight3A LimeLight, CRServo TurretServo) {
         this.TurnTable = TurnTable;
         this.LimeLight = LimeLight;
         this.timer = new ElapsedTime();
@@ -52,6 +53,15 @@ public class Turret {
         } else {
             stop();
         }
+    }
+    public void up(){
+        TurretServo.setPower(1.0);
+    }
+    public void down(){
+        TurretServo.setPower(-1.0);
+    }
+    public void servoStop(){
+        TurretServo.setPower(0);
     }
     public void target() {
         LLResult result = LimeLight.getLatestResult();
