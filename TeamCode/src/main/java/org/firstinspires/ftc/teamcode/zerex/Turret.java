@@ -8,7 +8,6 @@ import com.qualcomm.robotcore.hardware.CRServo;
 public class Turret {
     DcMotor TurnTable;
     Limelight3A LimeLight;
-
     CRServo TurretServo;
     public static final int LOWER_LIMIT = -1000;
     public static final int UPPER_LIMIT = 1000;

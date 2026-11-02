@@ -45,6 +45,8 @@ public class ZerexTeleFC extends LinearOpMode {
     private Limelight3A limelight;
     private boolean autoTargetEnabled = false;
     private boolean lastBumper2State = false;
+    boolean shooterEnabled = false;
+    boolean lastRightBumperState = false;
     private double shooterSpeed;
     @Override
     public void runOpMode() throws InterruptedException {
@@ -186,34 +188,44 @@ public class ZerexTeleFC extends LinearOpMode {
                     turret.stop();
                 }
             }
-            if (gamepad2.right_stick_y>0.3){
+            if (gamepad2.right_stick_y<0.3){
                 turret.up();
             }
-            else if (gamepad2.right_stick_y<0.3){
+            else if (gamepad2.right_stick_y>0.3){
                 turret.down();
             }
             else{
                 turret.servoStop();
             }
-            if (gamepad2.left_trigger>0.3){
-                shooterSpeed=-0.5;
-            }
-            else{
-                shooterSpeed=-1;
-            }
 
-
-            // --- Shooter ---
-            if (gamepad2.right_bumper) {
-                shooter.shoot(shooterSpeed);
+            boolean currentRightBumperState = gamepad2.right_bumper;
+            if (currentRightBumperState && !lastRightBumperState) {
+                shooterEnabled = !shooterEnabled;
+            }
+            lastRightBumperState = currentRightBumperState;
+            if (shooterEnabled) {
+                shooter.shoot(-1);
             } else {
                 shooter.stop();
             }
-
             // --- Intake ---
-            if (gamepad1.left_trigger > 0.3) {
+            if (gamepad2.right_trigger > 0.3) {
                 intake.intake();
             } else {
+                intake.stop();
+            }
+            //intake reverse
+            if (gamepad2.a){
+                intake.reverse();
+            }
+            else{
+                intake.stop();
+            }
+            //intake + transfer reverse
+            if (gamepad2.x){
+                intake.reverse();
+            }
+            else{
                 intake.stop();
             }
 
